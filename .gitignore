@@ -1,0 +1,9 @@
+*.pyc
+.idea
+data_thesis/
+output/
+runs/
+runs_old/
+logs/
+ckpts/
+eval/drivelm/outputs/

@@ -1,0 +1,23 @@
+bev_features_folder_train: '/workspace/BLIP/data_thesis/bev_features/tiny/train'
+bev_features_folder_val: '/workspace/BLIP/data_thesis/bev_features/tiny/val'
+scene_statements: '/workspace/BLIP/data_thesis/scene_statements.json'
+nuscenes_sample: '/workspace/BLIP/data_thesis/sample.json'
+
+# batch_size: 75
+batch_size: 10
+
+# queue_size: 57600
+queue_size: 200
+alpha: 0.4
+
+# optimizer
+weight_decay: 0.05
+init_lr: 0.000005
+min_lr: 0.000001
+warmup_lr: 0.000001
+lr_decay_rate: 0.9
+max_epoch: 50
+warmup_steps: 3000
+
+
+
