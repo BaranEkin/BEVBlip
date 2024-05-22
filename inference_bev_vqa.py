@@ -8,9 +8,9 @@ from torch.utils.data.dataloader import DataLoader
 device = torch.device("cuda")
 
 dataset = bev_drivelm_dataset(
-    "/workspace/BLIP/data_thesis/bev_features_t/train",
-    "/workspace/BLIP/data_thesis/bev_features_t/val",
-    ["/workspace/BLIP/data_thesis/QA_dataset_nus/v1_1_val_nus_q_only.json"],
+    "/workspace/thesis/data_thesis/bev_features_t/train",
+    "/workspace/thesis/data_thesis/bev_features_t/val",
+    ["/workspace/thesis/data_thesis/QA_dataset_nus/v1_1_val_nus_q_only.json"],
 )
 
 
@@ -18,17 +18,17 @@ data_loader = DataLoader(dataset, batch_size=1, shuffle=False)
 
 
 print("Initializing the model...")
-model = BLIP_BEV_VQA()
+model = BLIP_BEV_VQA(obj_det=True)
 model = model.to(device)
 print("Model initialized.")
 
 print("Loading previous checkpoint...")
 checkpoint = torch.load(
-    "/workspace/BLIP/output/BEV_VQA_DriveLM/BLIP_BEV_VQA_DriveLM_v4_new_bev_26.pth"
+    "/workspace/thesis/output/BEV_VQA_DriveLM/BLIP_BEV_VQA_DriveLM_v5_obj_level_bev_12.pth"
 )
 model.load_state_dict(checkpoint["model"])
 print("Previous checkpoint loaded!")
 
 print("Starting inference...")
-generate_drivelm_output(model, data_loader, "v4", device)
+generate_drivelm_output(model, data_loader, "v5", device)
 print("Inference complete!")

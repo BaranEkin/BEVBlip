@@ -1,12 +1,12 @@
-bev_features_folder_train: '/workspace/BLIP/data_thesis/bev_features_t/train'
-bev_features_folder_val: '/workspace/BLIP/data_thesis/bev_features_t/val'
-drivelm_jsons: ['/workspace/BLIP/data_thesis/QA_dataset_nus/v1_1_train_nus.json']
+bev_features_folder_train: '/workspace/thesis/data_thesis/bev_features_t/train'
+bev_features_folder_val: '/workspace/thesis/data_thesis/bev_features_t/val'
+drivelm_jsons: ['/workspace/thesis/data_thesis/QA_dataset_nus/v1_1_train_nus_converted.json']
 
 batch_size: 10
 
 # optimizer
 weight_decay: 0.05
-init_lr: 0.000005
-min_lr: 0.000001
-lr_decay_rate: 0.9
-max_epoch: 10
+init_lr: 0.000003
+min_lr: 0.0000005
+lr_decay_rate: 0.95
+max_epoch: 50

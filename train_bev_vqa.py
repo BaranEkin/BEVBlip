@@ -59,7 +59,7 @@ def train(
 
         if i % gen_freq == 0:
             generate_log_entry(
-                model, bev, question, answer, epoch, i, gen_log, mode="Train"
+                model, bev, question, det, answer, epoch, i, gen_log, mode="Train"
             )
 
     # gather the stats from all processes
@@ -126,7 +126,7 @@ def validation(model, data_loader, epoch, device, writer, gen_log, gen_freq):
 
             if i % gen_freq == 0:
                 generate_log_entry(
-                    model, bev, question, answer, epoch, i, gen_log, mode="Val"
+                    model, bev, question, det, answer, epoch, i, gen_log, mode="Val"
                 )
 
         # Averaging over epoch
@@ -140,12 +140,12 @@ def validation(model, data_loader, epoch, device, writer, gen_log, gen_freq):
         writer.add_scalar("Val/ROUGE-L", lang_metrics["ROUGE_L"], epoch)
         writer.add_scalar("Val/CIDEr", lang_metrics["CIDEr"], epoch)
         print("\nLanguage metric fails during validation:", num_lang_fail)
-        print("\n[EPOCH: {epoch}] Validation complete!\n")
+        print(f"\n[EPOCH: {epoch}] Validation complete!\n")
         model.train()
 
 
-def generate_log_entry(model, bev, question, answer, ep, step, log_file, mode="Train"):
-    output = model.generate(bev, question)
+def generate_log_entry(model, bev, question, det, answer, ep, step, log_file, mode="Train"):
+    output = model.generate(bev, question, det=det)
     print(f"\nEpoch: {ep}, Mode: {mode}, Step: {step}", file=log_file, flush=True)
     print(f"Q:  {question[0]}", file=log_file, flush=True)
     print(f"GT: {answer[0]}", file=log_file, flush=True)
@@ -205,7 +205,7 @@ def main(args, config):
         weight_decay=config["weight_decay"],
     )
 
-    run_name = "BLIP_BEV_VQA_DriveLM_v5_obj_level_bev_raw"
+    run_name = "BLIP_BEV_VQA_DriveLM_v5_obj_level_bev"
     todays_date = datetime.now().strftime("%d-%m")
     sum_writer = SummaryWriter(log_dir=f"runs/{todays_date}_{run_name}")
 
@@ -215,7 +215,7 @@ def main(args, config):
         print("Loading pretrained weights...")
         start_epoch = 1
         checkpoint = torch.load(
-            r"/workspace/BLIP/ckpts/Ex10_bs10_qs200_lr_5e-6_vit3_10_768_30.pth"
+            r"/workspace/thesis/output/BEV_VQA_DriveLM/BLIP_BEV_VQA_DriveLM_v5_obj_level_bev_raw_5.pth"
         )
         model.load_state_dict(checkpoint["model"], strict=False)
         print("Pretrained weights loaded!")

@@ -54,7 +54,7 @@ class bev_drivelm_dataset(Dataset):
             bev = bev.squeeze()
 
         with open(det_filename, "rb") as det_file:
-            det = torch.load(det_filename)
+            det = torch.load(det_file)
 
         return (
             bev,

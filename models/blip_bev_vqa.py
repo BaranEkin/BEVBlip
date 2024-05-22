@@ -145,7 +145,7 @@ class BLIP_BEV_VQA(nn.Module):
             bev.view(-1, self.bev_size, self.bev_size, self.bev_dim).permute(0, 3, 1, 2)
         )
 
-        if det is not None and self.obj_det == True:
+        if det is not None and self.obj_det:
             det_embeds = self.det_proj(det)
             bev_embeds = torch.cat([bev_embeds, det_embeds], dim=1)
 

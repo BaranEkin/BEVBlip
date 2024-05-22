@@ -58,14 +58,23 @@ def format_sentence_for_drivelm(sentence):
             return text
         except:
             return text
+    
+    def format_id(text):
+        try:
+            text = re.sub(r'\bids\b', 'IDs', text)
+            text = re.sub(r'\bid\b', 'ID', text)
+            return text
+        except:
+            return text
 
     # Apply transformations
-    cleaned = remove_unnecessary_spaces(sentence)
-    capitalized = capitalize_after_punctuation(cleaned)
-    c_tag_formatted = format_c_tag(capitalized)
-    multi_choice_formatted = format_multiple_choice(c_tag_formatted)
-    final_sentence = format_yes_no(multi_choice_formatted)
-    return final_sentence
+    sentence = remove_unnecessary_spaces(sentence)
+    sentence = capitalize_after_punctuation(sentence)
+    sentence = format_c_tag(sentence)
+    sentence = format_multiple_choice(sentence)
+    sentence = format_yes_no(sentence)
+    sentence = format_id(sentence)
+    return sentence
 
 
 def generate_drivelm_output(model, data_loader, epoch, device):
@@ -74,17 +83,17 @@ def generate_drivelm_output(model, data_loader, epoch, device):
     model.eval()
     with torch.no_grad():
         with open(
-            f"/workspace/BLIP/eval/drivelm/outputs/output_{epoch}.json", "w"
+            f"/workspace/thesis/eval/drivelm/outputs/output_{epoch}.json", "w"
         ) as out_json:
             id_list = []
             out_dicts = []
-            for i, (bev, question, answer, sample_token, scene_token) in enumerate(
+            for i, (bev, question, answer, sample_token, scene_token, det) in enumerate(
                 data_loader
             ):
                 print(f"\r{i}/{len(data_loader)}", end="")
 
                 bev = bev.to(device, non_blocking=True)
-                output = model.generate(bev, question)
+                output = model.generate(bev, question, det=det)
                 output = format_sentence_for_drivelm(output[0])
 
                 out_dict = {}

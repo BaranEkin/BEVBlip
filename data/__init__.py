@@ -24,7 +24,7 @@ def create_dataset(dataset, config, min_scale=0.5):
             config["bev_features_folder_val"],
             config["drivelm_jsons"],
         )
-        val_size = int(len(bev_drivelm) * 0.01)
+        val_size = int(len(bev_drivelm) * 0.05)
         train_dataset, val_dataset = random_split(
             bev_drivelm,
             [len(bev_drivelm) - val_size, val_size],
