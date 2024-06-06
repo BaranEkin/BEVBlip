@@ -1,7 +1,7 @@
-bev_features_folder_train: '/workspace/BLIP/data_thesis/bev_features_t/train'
-bev_features_folder_val: '/workspace/BLIP/data_thesis/bev_features_t/val'
-scene_statements: '/workspace/BLIP/data_thesis/scene_statements.json'
-nuscenes_sample: '/workspace/BLIP/data_thesis/sample.json'
+bev_features_folder_train: '/workspace/thesis/data_thesis/bev_features_t/train'
+bev_features_folder_val: '/workspace/thesis/data_thesis/bev_features_t/val'
+scene_statements: '/workspace/thesis/data_thesis/scene_statements.json'
+nuscenes_sample: '/workspace/thesis/data_thesis/sample.json'
 
 batch_size: 10
 

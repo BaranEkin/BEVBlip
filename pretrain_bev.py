@@ -327,7 +327,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="./configs/pretrain_bev.yaml")
-    parser.add_argument("--output_dir", default="output/Pretrain_BEV")
+    parser.add_argument("--output_dir", default="output/BEV_Pretrain")
     # parser.add_argument('--checkpoint', default='')
     parser.add_argument("--evaluate", action="store_true")
     parser.add_argument("--device", default="cuda")
