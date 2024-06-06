@@ -173,7 +173,7 @@ def validation(model, data_loader, epoch, device, config, writer, gen_log, gen_f
 
         # print("GPT metric fails during validation:", num_gpt_fail)
         print("\nLanguage metric fails during validation:", num_lang_fail)
-        print("\n[EPOCH: {epoch}] Validation complete!\n")
+        print(f"\n[EPOCH: {epoch}] Validation complete!\n")
 
     model.train()
 
@@ -238,7 +238,7 @@ def main(args, config):
         weight_decay=config["weight_decay"],
     )
 
-    run_name = "Ex10_bs10_qs200_lr_5e-6_vit3_10_768"
+    run_name = "BEV_Pretrain"
     todays_date = datetime.now().strftime("%d-%m")
     sum_writer = SummaryWriter(log_dir=f"runs/{todays_date}_{run_name}")
 
@@ -260,7 +260,7 @@ def main(args, config):
     """
 
     with open(f"./logs/log_{todays_date}_{run_name}.txt", "w") as gen_log_file:
-        # validation(model, val_loader, 0, device, config, sum_writer, gen_log_file, gen_freq=500)
+        validation(model, val_loader, 0, device, config, sum_writer, gen_log_file, gen_freq=100)
 
         print("Start training")
         start_time = time.time()
@@ -283,7 +283,7 @@ def main(args, config):
                 config,
                 sum_writer,
                 gen_log_file,
-                gen_freq=250,
+                gen_freq=100,
             )
             validation(
                 model,
@@ -293,7 +293,7 @@ def main(args, config):
                 config,
                 sum_writer,
                 gen_log_file,
-                gen_freq=500,
+                gen_freq=100,
             )
 
             if utils.is_main_process():

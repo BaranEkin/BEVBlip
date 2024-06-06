@@ -304,8 +304,8 @@ class BLIP_BEV_Pretrain(nn.Module):
     def generate(
         self,
         bev,
-        max_length=50,
-        min_length=10,
+        max_length=100,
+        min_length=5,
         top_p=0.9,
     ):
         bs = bev.size(0)
