@@ -38,13 +38,13 @@ def train(
 
     data_loader.sampler.set_epoch(epoch)
 
-    for i, (bev, question, answer, _, _, det) in enumerate(
+    for i, (bev, question, answer, _, _, det, obj) in enumerate(
         metric_logger.log_every(data_loader, print_freq, header)
     ):
         optimizer.zero_grad()
 
         bev = bev.to(device, non_blocking=True)
-        loss = model(bev=bev, question=question, answer=answer, det=det)
+        loss = model(bev=bev, question=question, answer=answer, det=det, obj=obj)
 
         loss.backward()
         optimizer.step()
@@ -59,7 +59,7 @@ def train(
 
         if i % gen_freq == 0:
             generate_log_entry(
-                model, bev, question, det, answer, epoch, i, gen_log, mode="Train"
+                model, bev, question, det, obj, answer, epoch, i, gen_log, mode="Train"
             )
 
     # gather the stats from all processes
@@ -107,10 +107,10 @@ def validation(model, data_loader, epoch, device, writer, gen_log, gen_freq):
         num_lang_fail = 0
         num_samples = len(data_loader)
 
-        for i, (bev, question, answer, _, _, det) in enumerate(data_loader):
+        for i, (bev, question, answer, _, _, det, obj) in enumerate(data_loader):
             print(f"\rRunning Validation {i + 1}/{num_samples}", end="")
             bev = bev.to(device, non_blocking=True)
-            output = model.generate(bev, question, det=det)
+            output = model.generate(bev, question, det=det, obj=obj)
 
             # LANGUAGE METRICS CALCULATION
             try:
@@ -126,7 +126,7 @@ def validation(model, data_loader, epoch, device, writer, gen_log, gen_freq):
 
             if i % gen_freq == 0:
                 generate_log_entry(
-                    model, bev, question, det, answer, epoch, i, gen_log, mode="Val"
+                    model, bev, question, det, obj, answer, epoch, i, gen_log, mode="Val"
                 )
 
         # Averaging over epoch
@@ -144,8 +144,8 @@ def validation(model, data_loader, epoch, device, writer, gen_log, gen_freq):
         model.train()
 
 
-def generate_log_entry(model, bev, question, det, answer, ep, step, log_file, mode="Train"):
-    output = model.generate(bev, question, det=det)
+def generate_log_entry(model, bev, question, det, obj, answer, ep, step, log_file, mode="Train"):
+    output = model.generate(bev, question, det=det, obj=obj)
     print(f"\nEpoch: {ep}, Mode: {mode}, Step: {step}", file=log_file, flush=True)
     print(f"Q:  {question[0]}", file=log_file, flush=True)
     print(f"GT: {answer[0]}", file=log_file, flush=True)
@@ -205,7 +205,7 @@ def main(args, config):
         weight_decay=config["weight_decay"],
     )
 
-    run_name = "BLIP_BEV_VQA_DriveLM_v5_obj_level_bev"
+    run_name = "BLIP_BEV_VQA_DriveLM_v6_obj_feats"
     todays_date = datetime.now().strftime("%d-%m")
     sum_writer = SummaryWriter(log_dir=f"runs/{todays_date}_{run_name}")
 
@@ -215,7 +215,7 @@ def main(args, config):
         print("Loading pretrained weights...")
         start_epoch = 1
         checkpoint = torch.load(
-            r"/workspace/thesis/output/BEV_VQA_DriveLM/BLIP_BEV_VQA_DriveLM_v5_obj_level_bev_raw_5.pth"
+            r"/workspace/thesis/output/BEV_VQA_DriveLM/BLIP_BEV_VQA_DriveLM_v6_obj_feats_raw_9.pth"
         )
         model.load_state_dict(checkpoint["model"], strict=False)
         print("Pretrained weights loaded!")
@@ -240,7 +240,7 @@ def main(args, config):
     """
 
     with open(f"./logs/log_{todays_date}_{run_name}.txt", "w") as gen_log_file:
-        validation(model, val_loader, 0, device, sum_writer, gen_log_file, gen_freq=10)
+        validation(model, val_loader, 0, device, sum_writer, gen_log_file, gen_freq=2)
 
         print("Start training")
         start_time = time.time()

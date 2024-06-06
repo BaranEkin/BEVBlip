@@ -49,6 +49,7 @@ class BLIP_BEV_VQA(nn.Module):
         # Detected Obj Features --------------------------------------------------------------------
         if obj_det:
             self.det_proj = nn.Linear(bev_dim, visual_width)
+            self.obj_proj = nn.Linear(bev_dim, visual_width)
 
         # Text Encoder -----------------------------------------------------------------------------
         encoder_config = BertConfig.from_json_file(med_config)
@@ -63,7 +64,7 @@ class BLIP_BEV_VQA(nn.Module):
         self.text_decoder = BertLMHeadModel(config=decoder_config)
         self.text_decoder.resize_token_embeddings(len(self.tokenizer))
 
-    def forward(self, bev, question, answer, det=None):
+    def forward(self, bev, question, answer, det=None, obj=None):
         bev_embeds = self.vis_encoder(
             bev.view(-1, self.bev_size, self.bev_size, self.bev_dim).permute(0, 3, 1, 2)
         )
@@ -71,6 +72,10 @@ class BLIP_BEV_VQA(nn.Module):
         if det is not None and self.obj_det:
             det_embeds = self.det_proj(det)
             bev_embeds = torch.cat([bev_embeds, det_embeds], dim=1)
+
+        if obj is not None and self.obj_det:
+            obj_embeds = self.obj_proj(obj)
+            bev_embeds = torch.cat([bev_embeds, obj_embeds], dim=1)
 
         bev_atts = torch.ones(bev_embeds.size()[:-1], dtype=torch.long).to(self.device)
 
@@ -140,6 +145,7 @@ class BLIP_BEV_VQA(nn.Module):
         top_p=0.9,
         temperature=0.8,
         det=None,
+        obj=None,
     ):
         bev_embeds = self.vis_encoder(
             bev.view(-1, self.bev_size, self.bev_size, self.bev_dim).permute(0, 3, 1, 2)
@@ -148,6 +154,10 @@ class BLIP_BEV_VQA(nn.Module):
         if det is not None and self.obj_det:
             det_embeds = self.det_proj(det)
             bev_embeds = torch.cat([bev_embeds, det_embeds], dim=1)
+
+        if obj is not None and self.obj_det:
+            obj_embeds = self.obj_proj(obj)
+            bev_embeds = torch.cat([bev_embeds, obj_embeds], dim=1)
 
         bev_atts = torch.ones(bev_embeds.size()[:-1], dtype=torch.long).to(self.device)
         bs = bev_embeds.size(0)

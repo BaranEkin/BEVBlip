@@ -87,13 +87,13 @@ def generate_drivelm_output(model, data_loader, epoch, device):
         ) as out_json:
             id_list = []
             out_dicts = []
-            for i, (bev, question, answer, sample_token, scene_token, det) in enumerate(
+            for i, (bev, question, answer, sample_token, scene_token, det, obj) in enumerate(
                 data_loader
             ):
                 print(f"\r{i}/{len(data_loader)}", end="")
 
                 bev = bev.to(device, non_blocking=True)
-                output = model.generate(bev, question, det=det)
+                output = model.generate(bev, question, det=det, obj=obj)
                 output = format_sentence_for_drivelm(output[0])
 
                 out_dict = {}

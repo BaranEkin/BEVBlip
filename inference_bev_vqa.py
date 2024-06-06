@@ -24,11 +24,11 @@ print("Model initialized.")
 
 print("Loading previous checkpoint...")
 checkpoint = torch.load(
-    "/workspace/thesis/output/BEV_VQA_DriveLM/BLIP_BEV_VQA_DriveLM_v5_obj_level_bev_12.pth"
+    "/workspace/thesis/output/BEV_VQA_DriveLM/BLIP_BEV_VQA_DriveLM_v6_obj_feats_23.pth"
 )
 model.load_state_dict(checkpoint["model"])
 print("Previous checkpoint loaded!")
 
 print("Starting inference...")
-generate_drivelm_output(model, data_loader, "v5", device)
+generate_drivelm_output(model, data_loader, "v6", device)
 print("Inference complete!")
