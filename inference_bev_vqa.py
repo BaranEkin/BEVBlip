@@ -10,7 +10,7 @@ device = torch.device("cuda")
 dataset = bev_drivelm_dataset(
     "/workspace/thesis/data_thesis/bev_features_t/train",
     "/workspace/thesis/data_thesis/bev_features_t/val",
-    ["/workspace/thesis/data_thesis/QA_dataset_nus/v1_1_val_nus_q_only.json"],
+    "/workspace/thesis/data_thesis/QA_dataset_nus/test_converted.json",
 )
 
 
@@ -18,7 +18,7 @@ data_loader = DataLoader(dataset, batch_size=1, shuffle=False)
 
 
 print("Initializing the model...")
-model = BLIP_BEV_VQA(obj_det=True)
+model = BLIP_BEV_VQA(use_vit=True, use_det=True, use_obj=True)
 model = model.to(device)
 print("Model initialized.")
 
@@ -30,5 +30,5 @@ model.load_state_dict(checkpoint["model"])
 print("Previous checkpoint loaded!")
 
 print("Starting inference...")
-generate_drivelm_output(model, data_loader, "v6", device)
+generate_drivelm_output(model, data_loader, "v6_test_converted", device)
 print("Inference complete!")

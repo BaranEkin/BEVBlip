@@ -7,7 +7,7 @@ import language_evaluation
 import sys
 
 sys.path.append(".")
-# from eval.drivelm.gpt_eval import GPTEvaluation
+from eval.drivelm.gpt_eval import GPTEvaluation
 
 
 class evaluation_suit:
@@ -15,7 +15,7 @@ class evaluation_suit:
         self.language_eval = language_evaluation.CocoEvaluator(
             coco_types=["BLEU", "ROUGE_L", "CIDEr"]
         )
-        # self.chatgpt_eval = GPTEvaluation()
+        self.chatgpt_eval = GPTEvaluation()
         self.GPT = []
         self.accuracy = {"answer": [], "GT": []}
         self.language = {"answer": [], "GT": []}
@@ -148,10 +148,9 @@ class evaluation_suit:
         print("evaluation start!")
         scores = {}
         scores["accuracy"] = self.eval_acc()
-        # scores["chatgpt"] = self.eval_chatGPT(self.GPT)
-        scores["chatgpt"] = 0
+        scores["chatgpt"] = self.eval_chatGPT(self.GPT)
         scores["language"] = self.eval_language()
-        # scores["match"] = self.eval_match()
+        scores["match"] = self.eval_match()
 
         return scores
 
@@ -162,13 +161,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--root_path1",
         type=str,
-        default="/workspace/BLIP/eval/drivelm/output.json",
+        default="/workspace/thesis/eval/drivelm/outputs/output_v6_test_converted.json",
         help="path to prediction file",
     )
     parser.add_argument(
         "--root_path2",
         type=str,
-        default="/workspace/BLIP/eval/drivelm/test_eval.json",
+        default="/workspace/thesis/data_thesis/QA_dataset_nus/test_converted.json",
         help="path to test file",
     )
     args = parser.parse_args()
@@ -199,7 +198,7 @@ if __name__ == "__main__":
                 tag = qa["tag"]
                 idx = scene_id + "_" + frame_id + "_" + str(i)
                 predict = pred_file[idx]["answer"]
-                # assert pred_file[idx]["gt_answer"] == GT, print(pred_file[idx]["gt_answer"], GT)
+                assert pred_file[idx]["gt_answer"] == GT, print(pred_file[idx]["gt_answer"], GT)
                 if first_flag:
                     first_flag = False
                     evaluation.set_graph(predict, GT)

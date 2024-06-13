@@ -260,7 +260,7 @@ def main(args, config):
     """
 
     with open(f"./logs/log_{todays_date}_{run_name}.txt", "w") as gen_log_file:
-        validation(model, val_loader, 0, device, config, sum_writer, gen_log_file, gen_freq=100)
+        # validation(model, val_loader, 0, device, config, sum_writer, gen_log_file, gen_freq=100)
 
         print("Start training")
         start_time = time.time()
