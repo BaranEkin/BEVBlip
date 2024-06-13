@@ -1,6 +1,7 @@
 import re
 import torch
 import json
+import random
 from eval.drivelm.evaluation import evaluation_suit
 
 
@@ -203,3 +204,80 @@ def drivelm_evaluation(pred_file_path, test_file_path):
     print("Results:\n", eval_results)
 
     return eval_results
+
+
+def split_dataset():
+
+    train_file_path = "/workspace/thesis/data_thesis/QA_dataset_nus/v1_1_train_nus.json"
+    train_converted_file_path = "/workspace/thesis/data_thesis/QA_dataset_nus/v1_1_train_nus_converted.json"
+
+    train_path = "/workspace/thesis/data_thesis/QA_dataset_nus/train.json"
+    test_path = "/workspace/thesis/data_thesis/QA_dataset_nus/test.json"
+    val_path = "/workspace/thesis/data_thesis/QA_dataset_nus/val.json"
+
+    train_conv_path = "/workspace/thesis/data_thesis/QA_dataset_nus/train_converted.json"
+    test_conv_path = "/workspace/thesis/data_thesis/QA_dataset_nus/test_converted.json"
+    val_conv_path = "/workspace/thesis/data_thesis/QA_dataset_nus/val_converted.json"
+
+    with open(train_file_path, "r") as train_file:
+        train_json = json.load(train_file)
+
+    with open(train_converted_file_path, "r") as train_converted_file:
+        train_converted_json = json.load(train_converted_file)
+
+    scene_ids = list(train_json.keys())
+
+    random.shuffle(scene_ids)
+    
+    # Calculate split indices
+    num_scenes = len(scene_ids)
+    split1 = int(0.75 * num_scenes)
+    split2 = split1 + int(0.2 * num_scenes)
+    
+    # Split the list
+    train_ids = scene_ids[:split1]
+    test_ids = scene_ids[split1:split2]
+
+    train = {}
+    test = {}
+    val = {}
+    train_conv = {}
+    test_conv = {}
+    val_conv = {}
+    i = 0
+
+    for scene_id in train_json.keys():
+        i += 1
+        print(f"Scene{i}/{num_scenes}", end="")
+
+        if scene_id in train_ids:
+            train[scene_id] = train_json[scene_id]
+            train_conv[scene_id] = train_converted_json[scene_id]
+        elif scene_id in test_ids:
+            test[scene_id] = train_json[scene_id]
+            test_conv[scene_id] = train_converted_json[scene_id]
+        else:
+            val[scene_id] = train_json[scene_id]
+            val_conv[scene_id] = train_converted_json[scene_id]
+
+    with open(train_path, "w") as f:
+        json.dump(train, f, indent=4)
+
+    with open(train_conv_path, "w") as f:
+        json.dump(train_conv, f, indent=4)
+
+    with open(test_path, "w") as f:
+        json.dump(test, f, indent=4)
+
+    with open(test_conv_path, "w") as f:
+        json.dump(test_conv, f, indent=4)
+
+    with open(val_path, "w") as f:
+        json.dump(val, f, indent=4)
+
+    with open(val_conv_path, "w") as f:
+        json.dump(val_conv, f, indent=4)
+
+
+if __name__ == "__main__":
+    split_dataset()
