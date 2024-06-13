@@ -7,29 +7,28 @@ from torch.utils.data import Dataset
 
 
 class bev_drivelm_dataset(Dataset):
-    def __init__(self, bev_folder_train, bev_folder_val, drivelm_json_paths):
+    def __init__(self, bev_folder_train, bev_folder_val, drivelm_json_path):
         self.bev_folder_train = bev_folder_train
         self.bev_folder_val = bev_folder_val
         self.drivelm = []
 
-        for drivelm_json_path in drivelm_json_paths:
-            with open(drivelm_json_path, "r") as drivelm_json:
-                self.drivelm_dict = json.load(drivelm_json)
+        with open(drivelm_json_path, "r") as drivelm_json:
+            self.drivelm_dict = json.load(drivelm_json)
 
-            for scene_token, scene in self.drivelm_dict.items():
-                for keyframe, keyframe_data in scene["key_frames"].items():
-                    for q_type, qs in keyframe_data["QA"].items():
-                        for q_dict in qs:
-                            question = q_dict["Q"]
-                            answer = q_dict["A"]
-                            self.drivelm.append(
-                                {
-                                    "sample_token": keyframe,
-                                    "question": question,
-                                    "answer": answer,
-                                    "scene_token": scene_token,
-                                }
-                            )
+        for scene_token, scene in self.drivelm_dict.items():
+            for keyframe, keyframe_data in scene["key_frames"].items():
+                for q_type, qs in keyframe_data["QA"].items():
+                    for q_dict in qs:
+                        question = q_dict["Q"]
+                        answer = q_dict["A"]
+                        self.drivelm.append(
+                            {
+                                "sample_token": keyframe,
+                                "question": question,
+                                "answer": answer,
+                                "scene_token": scene_token,
+                            }
+                        )
 
     def __len__(self):
         return len(self.drivelm)

@@ -32,6 +32,21 @@ def create_dataset(dataset, config, min_scale=0.5):
         )
 
         return train_dataset, val_dataset
+    
+    elif dataset == "bev_drivelm_splitted":
+        train_dataset = bev_drivelm_dataset(
+            config["bev_features_folder_train"],
+            config["bev_features_folder_val"],
+            config["train"],
+        )
+
+        val_dataset = bev_drivelm_dataset(
+            config["bev_features_folder_train"],
+            config["bev_features_folder_val"],
+            config["val"],
+        )
+        
+        return train_dataset, val_dataset
 
 
 def create_sampler(datasets, shuffles, num_tasks, global_rank):
