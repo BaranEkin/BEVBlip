@@ -21,6 +21,16 @@ from utils import warmup_lr_schedule, step_lr_schedule
 from data import create_dataset, create_sampler, create_loader
 from eval_blip_bev import LanguageEvaluation
 
+RUN_NAME = "BLIP_BEV_VQA_DriveLM_notpretrained_novit_obj"
+START_NEW = True
+PRETRAINED = True
+CKPT = "/workspace/thesis/output/BEV_VQA_DriveLM/BLIP_BEV_VQA_DriveLM_notpretrained_novit_obj_raw_5.pth"
+VAL_GEN_FREQ = 2
+TRAIN_GEN_FREQ = 200
+VAL_LIMIT = None
+CONFIG_FILE = "./configs/train_bev_drivelm.yaml"
+OUTPUT_DIR = "output/BEV_VQA_DriveLM"
+
 
 def train(
     model, data_loader, optimizer, epoch, device, config, writer, gen_log, gen_freq
@@ -152,8 +162,9 @@ def main(args, config):
     print("number of training samples: %d" % len(train_dataset))
     print("number of validation samples: %d" % len(val_dataset))
     
-    """val_dataset = torch.utils.data.Subset(val_dataset, range(3000))
-    print("number of selected validation samples: %d" % len(val_dataset))"""
+    if VAL_LIMIT is not None:
+        val_dataset = torch.utils.data.Subset(val_dataset, range(VAL_LIMIT))
+        print("number of selected validation samples: %d" % len(val_dataset))
 
     num_tasks = utils.get_world_size()
     global_rank = utils.get_rank()
@@ -180,7 +191,7 @@ def main(args, config):
 
     #### Model ####
     print("Initializing the model...")
-    model = BLIP_BEV_VQA(use_vit=True, use_det=True, use_obj=True)
+    model = BLIP_BEV_VQA(use_vit=False, use_det=False, use_obj=True)
     model = model.to(device)
     print("Model initialized.")
 
@@ -190,36 +201,32 @@ def main(args, config):
         weight_decay=config["weight_decay"],
     )
 
-    run_name = "BLIP_BEV_VQA_DriveLM_notpretrained_skip_obj"
     todays_date = datetime.now().strftime("%d-%m")
-    sum_writer = SummaryWriter(log_dir=f"runs/{todays_date}_{run_name}")
+    sum_writer = SummaryWriter(log_dir=f"runs/{todays_date}_{RUN_NAME}")
 
-    start_new = True
-    if start_new:
+    
+    if START_NEW:
         start_epoch = 1
-        # START FROM PRETRAINED WEIGHTS --------------------
-        print("Loading pretrained weights...")
-        checkpoint = torch.load(
-            r"/workspace/thesis/output/BEV_VQA_DriveLM/BLIP_BEV_VQA_DriveLM_notpretrained_skip_obj_raw_3.pth"
-        )
-        model.load_state_dict(checkpoint["model"], strict=False)
-        print("Pretrained weights loaded!")
-        # ----------------------------------------------------
+        if PRETRAINED:
+            # START FROM PRETRAINED WEIGHTS --------------------
+            print("Loading pretrained weights...")
+            checkpoint = torch.load(CKPT)
+            model.load_state_dict(checkpoint["model"], strict=False)
+            print("Pretrained weights loaded!")
+            # ----------------------------------------------------
 
     else:
         # CONTINUE FROM CHECKPOINT ----------------------------
         print("Loading previous checkpoint...")
-        checkpoint = torch.load(
-            r"/workspace/BLIP/output/BEV_VQA_DriveLM/BLIP_BEV_VQA_DriveLM_bs10_lr5e-6_4.pth"
-        )
+        checkpoint = torch.load(CKPT)
         model.load_state_dict(checkpoint["model"])
         optimizer.load_state_dict(checkpoint["optimizer"])
         start_epoch = checkpoint["epoch"] + 1
         print("Previous checkpoint loaded!")
         # ----------------------------------------------------
 
-    with open(f"./logs/log_{todays_date}_{run_name}.txt", "w") as gen_log_file:
-        validation(model, val_loader, 0, device, sum_writer, gen_log_file, gen_freq=2)
+    with open(f"./logs/log_{todays_date}_{RUN_NAME}.txt", "w") as gen_log_file:
+        validation(model, val_loader, 0, device, sum_writer, gen_log_file, gen_freq=VAL_GEN_FREQ)
 
         print("Start training")
         start_time = time.time()
@@ -242,10 +249,10 @@ def main(args, config):
                 config,
                 sum_writer,
                 gen_log_file,
-                gen_freq=100,
+                gen_freq=TRAIN_GEN_FREQ,
             )
             validation(
-                model, val_loader, epoch, device, sum_writer, gen_log_file, gen_freq=2
+                model, val_loader, epoch, device, sum_writer, gen_log_file, gen_freq=VAL_GEN_FREQ
             )
 
             if utils.is_main_process():
@@ -260,10 +267,10 @@ def main(args, config):
                     "epoch": epoch,
                 }
                 torch.save(
-                    save_obj, os.path.join(args.output_dir, f"{run_name}_{epoch}.pth")
+                    save_obj, os.path.join(OUTPUT_DIR, f"{RUN_NAME}_{epoch}.pth")
                 )
 
-                with open(os.path.join(args.output_dir, "log.txt"), "a") as f:
+                with open(os.path.join(OUTPUT_DIR, "log.txt"), "a") as f:
                     f.write(json.dumps(log_stats) + "\n")
 
             # dist.barrier()
@@ -278,8 +285,6 @@ if __name__ == "__main__":
         torch.cuda.empty_cache()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="./configs/train_bev_drivelm.yaml")
-    parser.add_argument("--output_dir", default="output/BEV_VQA_DriveLM")
     parser.add_argument("--evaluate", action="store_true")
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--seed", default=42, type=int)
@@ -292,10 +297,6 @@ if __name__ == "__main__":
     parser.add_argument("--distributed", default=False, type=bool)
     args = parser.parse_args()
 
-    config = yaml.load(open(args.config, "r"), Loader=yaml.Loader)
-
-    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-
-    yaml.dump(config, open(os.path.join(args.output_dir, "config.yaml"), "w"))
+    config = yaml.load(open(CONFIG_FILE, "r"), Loader=yaml.Loader)
 
     main(args, config)

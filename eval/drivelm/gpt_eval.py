@@ -3,7 +3,7 @@ from openai import OpenAI
 
 class GPTEvaluation:
     def __init__(self):
-        self.client = OpenAI(api_key="key")
+        self.client = OpenAI(api_key="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")
 
     def call_chatgpt(self, chatgpt_messages, max_tokens=40, model="gpt-3.5-turbo"):
         response = self.client.chat.completions.create(

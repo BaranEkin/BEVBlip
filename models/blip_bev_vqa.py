@@ -28,14 +28,15 @@ class BLIP_BEV_VQA(nn.Module):
         self.use_det = use_det
         self.use_obj = use_obj
 
-
+        self.visual_width = visual_width
+        
         # BEV --------------------------------------------------------------------------------------
         self.bev_size = bev_size
         self.bev_dim = bev_dim
-
+        
         # Visual Encoder (ViT) ---------------------------------------------------------------------
         if self.use_vit:
-            self.visual_width = visual_width
+            
             self.vit_patch_size = 5
             self.vit_depth = 3
             self.vit_num_heads = 12
@@ -72,6 +73,11 @@ class BLIP_BEV_VQA(nn.Module):
         decoder_config.encoder_width = self.visual_width
         self.text_decoder = BertLMHeadModel(config=decoder_config)
         self.text_decoder.resize_token_embeddings(len(self.tokenizer))
+
+        # BLIP Checkpoint ---------------------------------------------------------------------------
+        checkpoint = torch.load("/workspace/thesis/ckpts/model_base_capfilt_large.pth")
+        self.load_state_dict(checkpoint["model"], strict=False)
+        print("BLIP checkpoint loaded.")
 
     def forward(self, question, answer, bev=None, det=None, obj=None):
         visual_embeds = None
@@ -172,6 +178,8 @@ class BLIP_BEV_VQA(nn.Module):
         det=None,
         obj=None,
     ):
+        visual_embeds = None
+        
         # Get visual embeds -----------------------------------------------------------------------
         if self.use_vit:
             assert bev is not None, "No bev feature"
@@ -255,3 +263,4 @@ class BLIP_BEV_VQA(nn.Module):
             answer = self.tokenizer.decode(output, skip_special_tokens=True)
             answers.append(answer)
         return answers
+        
