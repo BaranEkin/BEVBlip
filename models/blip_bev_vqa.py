@@ -19,7 +19,8 @@ class BLIP_BEV_VQA(nn.Module):
         visual_width=768,
         use_vit=True,
         use_det=False,
-        use_obj=False
+        use_obj=False,
+        use_scene=False
     ):
         super().__init__()
         self.device = "cuda"
@@ -27,6 +28,7 @@ class BLIP_BEV_VQA(nn.Module):
         self.use_vit = use_vit
         self.use_det = use_det
         self.use_obj = use_obj
+        self.use_scene = use_scene
 
         self.visual_width = visual_width
         
@@ -52,6 +54,10 @@ class BLIP_BEV_VQA(nn.Module):
                 ckpt_layer=0,
                 drop_path_rate=0,
             )
+
+        if self.use_scene:
+            self.scene_pool = nn.AvgPool2d(kernel_size=10)
+            self.scene_proj = nn.Linear(bev_dim, visual_width)
 
         # BEV features from Detection Locations ----------------------------------------------------
         if self.use_det:
@@ -92,6 +98,19 @@ class BLIP_BEV_VQA(nn.Module):
                 visual_embeds = torch.cat([visual_embeds, bev_embeds], dim=1)
             else:
                 visual_embeds = bev_embeds
+
+        if self.use_scene:
+            assert bev is not None, "No bev feature"
+            scene_embeds = self.scene_pool(
+                bev.view(-1, self.bev_size, self.bev_size, self.bev_dim).permute(0, 3, 1, 2)
+            )
+            scene_embeds = torch.flatten(scene_embeds, 2, 3).permute(0, 2, 1)
+            scene_embeds = self.scene_proj(scene_embeds)
+
+            if visual_embeds is not None:
+                visual_embeds = torch.cat([visual_embeds, scene_embeds], dim=1)
+            else:
+                visual_embeds = scene_embeds
 
         if self.use_det:
             assert det is not None, "No det feature"
@@ -190,6 +209,19 @@ class BLIP_BEV_VQA(nn.Module):
                 visual_embeds = torch.cat([visual_embeds, bev_embeds], dim=1)
             else:
                 visual_embeds = bev_embeds
+
+        if self.use_scene:
+            assert bev is not None, "No bev feature"
+            scene_embeds = self.scene_pool(
+                bev.view(-1, self.bev_size, self.bev_size, self.bev_dim).permute(0, 3, 1, 2)
+            )
+            scene_embeds = torch.flatten(scene_embeds, 2, 3).permute(0, 2, 1)
+            scene_embeds = self.scene_proj(scene_embeds)
+
+            if visual_embeds is not None:
+                visual_embeds = torch.cat([visual_embeds, scene_embeds], dim=1)
+            else:
+                visual_embeds = scene_embeds
 
         if self.use_det:
             assert det is not None, "No det feature"
