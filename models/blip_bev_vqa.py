@@ -1,13 +1,12 @@
 import torch
 from torch import nn
-
 import transformers
-
-transformers.logging.set_verbosity_error()
 
 from models.blip import init_tokenizer
 from models.vit import VisionTransformer
 from models.med import BertConfig, BertModel, BertLMHeadModel
+
+transformers.logging.set_verbosity_error()
 
 
 class BLIP_BEV_VQA(nn.Module):
@@ -20,7 +19,7 @@ class BLIP_BEV_VQA(nn.Module):
         use_vit=True,
         use_det=False,
         use_obj=False,
-        use_scene=False
+        use_scene=False,
     ):
         super().__init__()
         self.device = "cuda"
@@ -31,14 +30,13 @@ class BLIP_BEV_VQA(nn.Module):
         self.use_scene = use_scene
 
         self.visual_width = visual_width
-        
+
         # BEV --------------------------------------------------------------------------------------
         self.bev_size = bev_size
         self.bev_dim = bev_dim
-        
+
         # Visual Encoder (ViT) ---------------------------------------------------------------------
         if self.use_vit:
-            
             self.vit_patch_size = 5
             self.vit_depth = 3
             self.vit_num_heads = 12
@@ -63,7 +61,7 @@ class BLIP_BEV_VQA(nn.Module):
         if self.use_det:
             self.det_proj = nn.Linear(bev_dim, visual_width)
 
-        # Object Features from BEVFormer Decoder  
+        # Object Features from BEVFormer Decoder
         if self.use_obj:
             self.obj_proj = nn.Linear(bev_dim, visual_width)
 
@@ -81,7 +79,7 @@ class BLIP_BEV_VQA(nn.Module):
         self.text_decoder.resize_token_embeddings(len(self.tokenizer))
 
         # BLIP Checkpoint ---------------------------------------------------------------------------
-        checkpoint = torch.load("/workspace/thesis/ckpts/model_base_capfilt_large.pth")
+        checkpoint = torch.load("./ckpts/model_base_capfilt_large.pth")
         self.load_state_dict(checkpoint["model"], strict=False)
         print("BLIP checkpoint loaded.")
 
@@ -92,7 +90,9 @@ class BLIP_BEV_VQA(nn.Module):
         if self.use_vit:
             assert bev is not None, "No bev feature"
             bev_embeds = self.vis_encoder(
-                bev.view(-1, self.bev_size, self.bev_size, self.bev_dim).permute(0, 3, 1, 2)
+                bev.view(-1, self.bev_size, self.bev_size, self.bev_dim).permute(
+                    0, 3, 1, 2
+                )
             )
             if visual_embeds is not None:
                 visual_embeds = torch.cat([visual_embeds, bev_embeds], dim=1)
@@ -102,7 +102,9 @@ class BLIP_BEV_VQA(nn.Module):
         if self.use_scene:
             assert bev is not None, "No bev feature"
             scene_embeds = self.scene_pool(
-                bev.view(-1, self.bev_size, self.bev_size, self.bev_dim).permute(0, 3, 1, 2)
+                bev.view(-1, self.bev_size, self.bev_size, self.bev_dim).permute(
+                    0, 3, 1, 2
+                )
             )
             scene_embeds = torch.flatten(scene_embeds, 2, 3).permute(0, 2, 1)
             scene_embeds = self.scene_proj(scene_embeds)
@@ -115,7 +117,7 @@ class BLIP_BEV_VQA(nn.Module):
         if self.use_det:
             assert det is not None, "No det feature"
             det_embeds = self.det_proj(det)
-            
+
             if visual_embeds is not None:
                 visual_embeds = torch.cat([visual_embeds, det_embeds], dim=1)
             else:
@@ -130,7 +132,9 @@ class BLIP_BEV_VQA(nn.Module):
             else:
                 visual_embeds = obj_embeds
 
-        visual_atts = torch.ones(visual_embeds.size()[:-1], dtype=torch.long).to(self.device)
+        visual_atts = torch.ones(visual_embeds.size()[:-1], dtype=torch.long).to(
+            self.device
+        )
         bs = visual_embeds.size(0)
 
         question = self.tokenizer(
@@ -171,7 +175,7 @@ class BLIP_BEV_VQA(nn.Module):
             question_atts += [question.attention_mask[b]] * n
         question_states = torch.stack(question_states, 0)
         question_atts = torch.stack(question_atts, 0)
-        
+
         # Get answer output -----------------------------------------------------------
         answer_output = self.text_decoder(
             answer.input_ids,
@@ -198,12 +202,14 @@ class BLIP_BEV_VQA(nn.Module):
         obj=None,
     ):
         visual_embeds = None
-        
+
         # Get visual embeds -----------------------------------------------------------------------
         if self.use_vit:
             assert bev is not None, "No bev feature"
             bev_embeds = self.vis_encoder(
-                bev.view(-1, self.bev_size, self.bev_size, self.bev_dim).permute(0, 3, 1, 2)
+                bev.view(-1, self.bev_size, self.bev_size, self.bev_dim).permute(
+                    0, 3, 1, 2
+                )
             )
             if visual_embeds is not None:
                 visual_embeds = torch.cat([visual_embeds, bev_embeds], dim=1)
@@ -213,7 +219,9 @@ class BLIP_BEV_VQA(nn.Module):
         if self.use_scene:
             assert bev is not None, "No bev feature"
             scene_embeds = self.scene_pool(
-                bev.view(-1, self.bev_size, self.bev_size, self.bev_dim).permute(0, 3, 1, 2)
+                bev.view(-1, self.bev_size, self.bev_size, self.bev_dim).permute(
+                    0, 3, 1, 2
+                )
             )
             scene_embeds = torch.flatten(scene_embeds, 2, 3).permute(0, 2, 1)
             scene_embeds = self.scene_proj(scene_embeds)
@@ -226,7 +234,7 @@ class BLIP_BEV_VQA(nn.Module):
         if self.use_det:
             assert det is not None, "No det feature"
             det_embeds = self.det_proj(det)
-            
+
             if visual_embeds is not None:
                 visual_embeds = torch.cat([visual_embeds, det_embeds], dim=1)
             else:
@@ -241,7 +249,9 @@ class BLIP_BEV_VQA(nn.Module):
             else:
                 visual_embeds = obj_embeds
 
-        visual_atts = torch.ones(visual_embeds.size()[:-1], dtype=torch.long).to(self.device)
+        visual_atts = torch.ones(visual_embeds.size()[:-1], dtype=torch.long).to(
+            self.device
+        )
         bs = visual_embeds.size(0)
 
         # Get question embeds ---------------------------------------------------------
@@ -295,4 +305,3 @@ class BLIP_BEV_VQA(nn.Module):
             answer = self.tokenizer.decode(output, skip_special_tokens=True)
             answers.append(answer)
         return answers
-        

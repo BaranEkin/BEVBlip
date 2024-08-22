@@ -16,7 +16,11 @@ class bev_pretrain_dataset(Dataset):
         with open(scene_statements_path, "r") as scene_statements_json:
             self.scene_statements = json.load(scene_statements_json)
 
-        self.bev_files_list = [file for file in glob.glob(os.path.join(bev_features_folder_path, "*.pt")) if not (file.endswith("_det.pt") or file.endswith("_obj.pt"))]
+        self.bev_files_list = [
+            file
+            for file in glob.glob(os.path.join(bev_features_folder_path, "*.pt"))
+            if not (file.endswith("_det.pt") or file.endswith("_obj.pt"))
+        ]
 
     def get_scene_token(self, sample_token):
         for sample in self.nusc_samples:

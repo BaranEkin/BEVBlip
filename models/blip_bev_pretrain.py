@@ -1,7 +1,10 @@
 import torch
+from torch import nn
 import torch.nn.functional as F
 import transformers
-from torch import nn
+
+from typing import List
+
 from models.med import BertConfig, BertModel, BertLMHeadModel
 from models.blip import init_tokenizer
 from models.vit import VisionTransformer
@@ -343,7 +346,7 @@ class BLIP_BEV_Pretrain(nn.Module):
         captions = []
         for output in outputs:
             caption = self.tokenizer.decode(output, skip_special_tokens=True)
-            captions.append(caption[len(self.prompt):])
+            captions.append(caption[len(self.prompt) :])
         return captions
 
     @torch.no_grad()
@@ -377,8 +380,8 @@ class BLIP_BEV_Pretrain(nn.Module):
         assert self.queue_size % batch_size == 0  # for simplicity
 
         # replace the keys at ptr (dequeue and enqueue)
-        self.bev_queue[:, ptr:ptr + batch_size] = bev_feats.T
-        self.text_queue[:, ptr:ptr + batch_size] = text_feats.T
+        self.bev_queue[:, ptr : ptr + batch_size] = bev_feats.T
+        self.text_queue[:, ptr : ptr + batch_size] = text_feats.T
         ptr = (ptr + batch_size) % self.queue_size  # move pointer
 
         self.queue_ptr[0] = ptr
@@ -408,9 +411,6 @@ def concat_all_gather(tensor):
 
     output = torch.cat(tensors_gather, dim=0)
     return output
-
-
-from typing import List
 
 
 def tie_encoder_decoder_weights(

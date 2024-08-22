@@ -4,7 +4,7 @@ from data.bev_pretrain_dataset import bev_pretrain_dataset
 from data.bev_drivelm_dataset import bev_drivelm_dataset
 
 
-def create_dataset(dataset, config, min_scale=0.5):
+def create_dataset(dataset, config):
     if dataset == "pretrain_bev":
         train_dataset = bev_pretrain_dataset(
             config["bev_features_folder_train"],
@@ -32,8 +32,8 @@ def create_dataset(dataset, config, min_scale=0.5):
         )
 
         return train_dataset, val_dataset
-    
-    elif dataset == "bev_drivelm_splitted":
+
+    elif dataset == "bev_drivelm_split":
         train_dataset = bev_drivelm_dataset(
             config["bev_features_folder_train"],
             config["bev_features_folder_val"],
@@ -45,7 +45,7 @@ def create_dataset(dataset, config, min_scale=0.5):
             config["bev_features_folder_val"],
             config["val"],
         )
-        
+
         return train_dataset, val_dataset
 
 

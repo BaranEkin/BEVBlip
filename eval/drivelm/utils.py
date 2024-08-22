@@ -59,11 +59,11 @@ def format_sentence_for_drivelm(sentence):
             return text
         except:
             return text
-    
+
     def format_id(text):
         try:
-            text = re.sub(r'\bids\b', 'IDs', text)
-            text = re.sub(r'\bid\b', 'ID', text)
+            text = re.sub(r"\bids\b", "IDs", text)
+            text = re.sub(r"\bid\b", "ID", text)
             return text
         except:
             return text
@@ -83,14 +83,18 @@ def generate_drivelm_output(model, data_loader, epoch, device):
 
     model.eval()
     with torch.no_grad():
-        with open(
-            f"/workspace/thesis/eval/drivelm/outputs/output_{epoch}.json", "w"
-        ) as out_json:
+        with open(f"./eval/drivelm/outputs/output_{epoch}.json", "w") as out_json:
             id_list = []
             out_dicts = []
-            for i, (bev, question, answer, sample_token, scene_token, det, obj) in enumerate(
-                data_loader
-            ):
+            for i, (
+                bev,
+                question,
+                answer,
+                sample_token,
+                scene_token,
+                det,
+                obj,
+            ) in enumerate(data_loader):
                 print(f"\r{i}/{len(data_loader)}", end="")
 
                 bev = bev.to(device, non_blocking=True)
@@ -161,7 +165,7 @@ def calculate_final_score(eval_out):
 def drivelm_evaluation(pred_file_path, test_file_path):
     print("Running DriveLM evaluation...")
 
-    with open(pred_file_path, "r") as f:  # , \
+    with open(pred_file_path, "r") as f:
         pred_file = json.load(f)
     pred_file = {pred_file[i]["id"]: pred_file[i] for i in range(len(pred_file))}
 
@@ -207,17 +211,18 @@ def drivelm_evaluation(pred_file_path, test_file_path):
 
 
 def split_dataset():
+    train_file_path = "./data_thesis/QA_dataset_nus/v1_1_train_nus.json"
+    train_converted_file_path = (
+        "./data_thesis/QA_dataset_nus/v1_1_train_nus_converted.json"
+    )
 
-    train_file_path = "/workspace/thesis/data_thesis/QA_dataset_nus/v1_1_train_nus.json"
-    train_converted_file_path = "/workspace/thesis/data_thesis/QA_dataset_nus/v1_1_train_nus_converted.json"
+    train_path = "./data_thesis/QA_dataset_nus/train.json"
+    test_path = "./data_thesis/QA_dataset_nus/test.json"
+    val_path = "./data_thesis/QA_dataset_nus/val.json"
 
-    train_path = "/workspace/thesis/data_thesis/QA_dataset_nus/train.json"
-    test_path = "/workspace/thesis/data_thesis/QA_dataset_nus/test.json"
-    val_path = "/workspace/thesis/data_thesis/QA_dataset_nus/val.json"
-
-    train_conv_path = "/workspace/thesis/data_thesis/QA_dataset_nus/train_converted.json"
-    test_conv_path = "/workspace/thesis/data_thesis/QA_dataset_nus/test_converted.json"
-    val_conv_path = "/workspace/thesis/data_thesis/QA_dataset_nus/val_converted.json"
+    train_conv_path = "./data_thesis/QA_dataset_nus/train_converted.json"
+    test_conv_path = "./data_thesis/QA_dataset_nus/test_converted.json"
+    val_conv_path = "./data_thesis/QA_dataset_nus/val_converted.json"
 
     with open(train_file_path, "r") as train_file:
         train_json = json.load(train_file)
@@ -228,12 +233,12 @@ def split_dataset():
     scene_ids = list(train_json.keys())
 
     random.shuffle(scene_ids)
-    
+
     # Calculate split indices
     num_scenes = len(scene_ids)
     split1 = int(0.75 * num_scenes)
     split2 = split1 + int(0.2 * num_scenes)
-    
+
     # Split the list
     train_ids = scene_ids[:split1]
     test_ids = scene_ids[split1:split2]
@@ -277,7 +282,3 @@ def split_dataset():
 
     with open(val_conv_path, "w") as f:
         json.dump(val_conv, f, indent=4)
-
-
-if __name__ == "__main__":
-    split_dataset()

@@ -1,3 +1,8 @@
+"""
+*** FROM DriveLM ***
+* https://github.com/OpenDriveLab/DriveLM/tree/main/challenge
+"""
+
 import re
 import argparse
 import json

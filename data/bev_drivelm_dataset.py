@@ -40,12 +40,16 @@ class bev_drivelm_dataset(Dataset):
         # BEV -------------------------------------------
         bev_filename = os.path.join(self.bev_folder_train, sample_token + ".pt")
         det_filename = os.path.join(self.bev_folder_train, sample_token + "_det.pt")
-        obj_filename = os.path.join(self.bev_folder_train, "obj/", sample_token + "_obj.pt")
+        obj_filename = os.path.join(
+            self.bev_folder_train, "obj/", sample_token + "_obj.pt"
+        )
 
         if not os.path.exists(bev_filename):
             bev_filename = os.path.join(self.bev_folder_val, sample_token + ".pt")
             det_filename = os.path.join(self.bev_folder_val, sample_token + "_det.pt")
-            obj_filename = os.path.join(self.bev_folder_val, "obj/", sample_token + "_obj.pt")
+            obj_filename = os.path.join(
+                self.bev_folder_val, "obj/", sample_token + "_obj.pt"
+            )
 
         if not os.path.exists(bev_filename):
             return self.__getitem__(random.randint(0, len(self.drivelm) - 1))
@@ -56,7 +60,7 @@ class bev_drivelm_dataset(Dataset):
 
         with open(det_filename, "rb") as det_file:
             det = torch.load(det_file)
-        
+
         with open(obj_filename, "rb") as obj_file:
             obj = torch.load(obj_file)
 
@@ -67,5 +71,5 @@ class bev_drivelm_dataset(Dataset):
             drivelm_item["sample_token"],
             drivelm_item["scene_token"],
             det,
-            obj
+            obj,
         )

@@ -1,26 +1,23 @@
-import argparse
 import os
-import yaml
-import numpy as np
+import argparse
+import json
 import random
 import time
 from datetime import datetime, timedelta
-import json
 from pathlib import Path
 
 import torch
-
+import numpy as np
+import yaml
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 from torch.utils.tensorboard import SummaryWriter
-
-from pycocoevalcap.tokenizer.ptbtokenizer import PTBTokenizer
 
 from models.blip_bev_pretrain import BLIP_BEV_Pretrain
 import utils
 from utils import warmup_lr_schedule, step_lr_schedule
 from data import create_dataset, create_sampler, create_loader
-from eval_blip_bev import LanguageEvaluation  # , GPTEvaluation
+from eval_blip_bev import LanguageEvaluation
 
 
 def train(
@@ -45,7 +42,6 @@ def train(
 
     header = "Train Epoch: [{}]".format(epoch)
     print_freq = 50
-    num_samples = len(data_loader)
 
     data_loader.sampler.set_epoch(epoch)
 
@@ -101,9 +97,8 @@ def train(
     }
 
 
-def validation(model, data_loader, epoch, device, config, writer, gen_log, gen_freq):
+def validation(model, data_loader, epoch, device, writer, gen_log, gen_freq):
     print(f"\n[EPOCH: {epoch}] Starting validation...\n")
-    ptb_tokenizer = PTBTokenizer()
     model.eval()
     with torch.no_grad():
         lang_metrics = {
@@ -111,15 +106,10 @@ def validation(model, data_loader, epoch, device, config, writer, gen_log, gen_f
             "Bleu_2": 0.0,
             "Bleu_3": 0.0,
             "Bleu_4": 0.0,
-            # "METEOR": 0.0,
             "ROUGE_L": 0.0,
             "CIDEr": 0.0,
-            # "SPICE": 0.0,
         }
 
-        gpt_metric = 0.0
-        num_gpt_fail = 0
-        num_lang_fail = 0
         num_samples = len(data_loader)
 
         for i, (bev, statement) in enumerate(data_loader):
@@ -127,52 +117,29 @@ def validation(model, data_loader, epoch, device, config, writer, gen_log, gen_f
             bev = bev.to(device, non_blocking=True)
             output = model.generate(bev)
 
-            # LANGUAGE METRICS CALCULATION
-            try:
-                lang_scores = LanguageEvaluation.evaluate(list(output), list(statement))
-                lang_metrics["Bleu_1"] += float(lang_scores["Bleu_1"])
-                lang_metrics["Bleu_2"] += float(lang_scores["Bleu_2"])
-                lang_metrics["Bleu_3"] += float(lang_scores["Bleu_3"])
-                lang_metrics["Bleu_4"] += float(lang_scores["Bleu_4"])
-                # lang_metrics["METEOR"] += float(lang_scores["METEOR"])
-                lang_metrics["ROUGE_L"] += float(lang_scores["ROUGE_L"])
-                lang_metrics["CIDEr"] += float(lang_scores["CIDEr"])
-                # lang_metrics["SPICE"] += float(lang_scores["SPICE"])
-            except:
-                num_lang_fail += 1
-
-            """
-            # GPT METRIC CALCULATION
-            try:
-                gpt_score = float(GPTEvaluation.evaluate(output[0], statement[0]))
-            except:
-                gpt_score = 0
-                num_gpt_fail += 1
-            
-            gpt_metric += gpt_score
-            """
+            # Language metrics calculation
+            lang_scores = LanguageEvaluation.evaluate(list(output), list(statement))
+            lang_metrics["Bleu_1"] += float(lang_scores["Bleu_1"])
+            lang_metrics["Bleu_2"] += float(lang_scores["Bleu_2"])
+            lang_metrics["Bleu_3"] += float(lang_scores["Bleu_3"])
+            lang_metrics["Bleu_4"] += float(lang_scores["Bleu_4"])
+            lang_metrics["ROUGE_L"] += float(lang_scores["ROUGE_L"])
+            lang_metrics["CIDEr"] += float(lang_scores["CIDEr"])
 
             if i % gen_freq == 0:
                 generate_log_entry(model, bev, statement, epoch, i, gen_log, mode="Val")
 
         # Averaging over epoch
         for m in lang_metrics:
-            lang_metrics[m] = lang_metrics[m] / max(1, num_samples - num_lang_fail)
+            lang_metrics[m] = lang_metrics[m] / num_samples
 
-        # gpt_metric = gpt_metric / max(1, num_samples- num_gpt_fail)
-
-        # writer.add_scalar("Val/GPT", gpt_metric, epoch)
         writer.add_scalar("Val/BLEU-1", lang_metrics["Bleu_1"], epoch)
         writer.add_scalar("Val/BLEU-2", lang_metrics["Bleu_2"], epoch)
         writer.add_scalar("Val/BLEU-3", lang_metrics["Bleu_3"], epoch)
         writer.add_scalar("Val/BLEU-4", lang_metrics["Bleu_4"], epoch)
-        # writer.add_scalar("Val/METEOR", lang_metrics["METEOR"], epoch)
         writer.add_scalar("Val/ROUGE-L", lang_metrics["ROUGE_L"], epoch)
         writer.add_scalar("Val/CIDEr", lang_metrics["CIDEr"], epoch)
-        # writer.add_scalar("Val/SPICE", lang_metrics["SPICE"], epoch)
 
-        # print("GPT metric fails during validation:", num_gpt_fail)
-        print("\nLanguage metric fails during validation:", num_lang_fail)
         print(f"\n[EPOCH: {epoch}] Validation complete!\n")
 
     model.train()
@@ -190,7 +157,7 @@ def main(args, config):
 
     device = torch.device(args.device)
 
-    # fix the seed for reproducibility
+    # Seeding for reproducibility
     seed = args.seed + utils.get_rank()
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -200,8 +167,8 @@ def main(args, config):
     #### Dataset ####
     print("Creating datasets")
     train_dataset, val_dataset = create_dataset("pretrain_bev", config, min_scale=0.2)
-    print("number of training samples: %d" % len(train_dataset))
-    print("number of validation samples: %d" % len(val_dataset))
+    print(f"Number of training samples: {len(train_dataset)}")
+    print(f"Number of validation samples: {len(val_dataset)}")
 
     num_tasks = utils.get_world_size()
     global_rank = utils.get_rank()
@@ -260,7 +227,7 @@ def main(args, config):
     """
 
     with open(f"./logs/log_{todays_date}_{run_name}.txt", "w") as gen_log_file:
-        # validation(model, val_loader, 0, device, config, sum_writer, gen_log_file, gen_freq=100)
+        validation(model, val_loader, 0, device, sum_writer, gen_log_file, gen_freq=100)
 
         print("Start training")
         start_time = time.time()
@@ -290,7 +257,6 @@ def main(args, config):
                 val_loader,
                 epoch,
                 device,
-                config,
                 sum_writer,
                 gen_log_file,
                 gen_freq=100,

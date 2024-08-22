@@ -1,30 +1,26 @@
 import argparse
+import json
 import os
-import yaml
-import numpy as np
 import random
 import time
 from datetime import datetime, timedelta
-import json
-from pathlib import Path
 
+import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
+import yaml
 from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import random_split
 
-
-from models.blip_bev_vqa import BLIP_BEV_VQA
-from models.blip_bev_pretrain import BLIP_BEV_Pretrain
-import utils
-from utils import warmup_lr_schedule, step_lr_schedule
 from data import create_dataset, create_sampler, create_loader
 from eval_blip_bev import LanguageEvaluation
+from models.blip_bev_vqa import BLIP_BEV_VQA
+import utils
+from utils import step_lr_schedule
 
-RUN_NAME = "BLIP_BEV_VQA_DriveLM_notpretrained_novit_obj"
+RUN_NAME = ""
 START_NEW = True
 PRETRAINED = True
-CKPT = "/workspace/thesis/output/BEV_VQA_DriveLM/BLIP_BEV_VQA_DriveLM_notpretrained_novit_obj_raw_5.pth"
+CKPT = ""
 VAL_GEN_FREQ = 2
 TRAIN_GEN_FREQ = 200
 VAL_LIMIT = None
@@ -32,9 +28,7 @@ CONFIG_FILE = "./configs/train_bev_drivelm.yaml"
 OUTPUT_DIR = "output/BEV_VQA_DriveLM"
 
 
-def train(
-    model, data_loader, optimizer, epoch, device, config, writer, gen_log, gen_freq
-):
+def train(model, data_loader, optimizer, epoch, device, writer, gen_log, gen_freq):
     # train
     model.train()
 
@@ -46,7 +40,6 @@ def train(
 
     header = "Train Epoch: [{}]".format(epoch)
     print_freq = 50
-    num_samples = len(data_loader)
 
     data_loader.sampler.set_epoch(epoch)
 
@@ -74,7 +67,7 @@ def train(
                 model, bev, question, det, obj, answer, epoch, i, gen_log, mode="Train"
             )
 
-    # gather the stats from all processes
+    # Gather the stats from all processes
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger.global_avg())
     return {
@@ -97,7 +90,6 @@ def validation(model, data_loader, epoch, device, writer, gen_log, gen_freq):
             "CIDEr": 0.0,
         }
 
-        num_lang_fail = 0
         num_samples = len(data_loader)
 
         for i, (bev, question, answer, _, _, det, obj) in enumerate(data_loader):
@@ -105,26 +97,32 @@ def validation(model, data_loader, epoch, device, writer, gen_log, gen_freq):
             bev = bev.to(device, non_blocking=True)
             output = model.generate(question, bev=bev, det=det, obj=obj)
 
-            # LANGUAGE METRICS CALCULATION
-            try:
-                lang_scores = LanguageEvaluation.evaluate(list(output), list(answer))
-                lang_metrics["Bleu_1"] += float(lang_scores["Bleu_1"])
-                lang_metrics["Bleu_2"] += float(lang_scores["Bleu_2"])
-                lang_metrics["Bleu_3"] += float(lang_scores["Bleu_3"])
-                lang_metrics["Bleu_4"] += float(lang_scores["Bleu_4"])
-                lang_metrics["ROUGE_L"] += float(lang_scores["ROUGE_L"])
-                lang_metrics["CIDEr"] += float(lang_scores["CIDEr"])
-            except:
-                num_lang_fail += 1
+            # Language metrics calculation
+            lang_scores = LanguageEvaluation.evaluate(list(output), list(answer))
+            lang_metrics["Bleu_1"] += float(lang_scores["Bleu_1"])
+            lang_metrics["Bleu_2"] += float(lang_scores["Bleu_2"])
+            lang_metrics["Bleu_3"] += float(lang_scores["Bleu_3"])
+            lang_metrics["Bleu_4"] += float(lang_scores["Bleu_4"])
+            lang_metrics["ROUGE_L"] += float(lang_scores["ROUGE_L"])
+            lang_metrics["CIDEr"] += float(lang_scores["CIDEr"])
 
             if i % gen_freq == 0:
                 generate_log_entry(
-                    model, bev, question, det, obj, answer, epoch, i, gen_log, mode="Val"
+                    model,
+                    bev,
+                    question,
+                    det,
+                    obj,
+                    answer,
+                    epoch,
+                    i,
+                    gen_log,
+                    mode="Val",
                 )
 
         # Averaging over epoch
         for m in lang_metrics:
-            lang_metrics[m] = lang_metrics[m] / max(1, num_samples - num_lang_fail)
+            lang_metrics[m] = lang_metrics[m] / num_samples
 
         writer.add_scalar("Val/BLEU-1", lang_metrics["Bleu_1"], epoch)
         writer.add_scalar("Val/BLEU-2", lang_metrics["Bleu_2"], epoch)
@@ -132,12 +130,13 @@ def validation(model, data_loader, epoch, device, writer, gen_log, gen_freq):
         writer.add_scalar("Val/BLEU-4", lang_metrics["Bleu_4"], epoch)
         writer.add_scalar("Val/ROUGE-L", lang_metrics["ROUGE_L"], epoch)
         writer.add_scalar("Val/CIDEr", lang_metrics["CIDEr"], epoch)
-        print("\nLanguage metric fails during validation:", num_lang_fail)
         print(f"\n[EPOCH: {epoch}] Validation complete!\n")
         model.train()
 
 
-def generate_log_entry(model, bev, question, det, obj, answer, ep, step, log_file, mode="Train"):
+def generate_log_entry(
+    model, bev, question, det, obj, answer, ep, step, log_file, mode="Train"
+):
     output = model.generate(question, bev=bev, det=det, obj=obj)
     print(f"\nEpoch: {ep}, Mode: {mode}, Step: {step}", file=log_file, flush=True)
     print(f"Q:  {question[0]}", file=log_file, flush=True)
@@ -148,7 +147,7 @@ def generate_log_entry(model, bev, question, det, obj, answer, ep, step, log_fil
 def main(args, config):
     device = torch.device(args.device)
 
-    # fix the seed for reproducibility
+    # Seeding for reproducibility
     seed = args.seed + utils.get_rank()
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -157,14 +156,10 @@ def main(args, config):
 
     #### Dataset ####
     print("Creating datasets")
-    train_dataset, val_dataset = create_dataset("bev_drivelm_splitted", config)
+    train_dataset, val_dataset = create_dataset("bev_drivelm_split", config)
 
-    print("number of training samples: %d" % len(train_dataset))
-    print("number of validation samples: %d" % len(val_dataset))
-    
-    if VAL_LIMIT is not None:
-        val_dataset = torch.utils.data.Subset(val_dataset, range(VAL_LIMIT))
-        print("number of selected validation samples: %d" % len(val_dataset))
+    print(f"Number of training samples: {len(train_dataset)}")
+    print(f"Number of validation samples: {len(val_dataset)}")
 
     num_tasks = utils.get_world_size()
     global_rank = utils.get_rank()
@@ -204,7 +199,6 @@ def main(args, config):
     todays_date = datetime.now().strftime("%d-%m")
     sum_writer = SummaryWriter(log_dir=f"runs/{todays_date}_{RUN_NAME}")
 
-    
     if START_NEW:
         start_epoch = 1
         if PRETRAINED:
@@ -226,7 +220,15 @@ def main(args, config):
         # ----------------------------------------------------
 
     with open(f"./logs/log_{todays_date}_{RUN_NAME}.txt", "w") as gen_log_file:
-        validation(model, val_loader, 0, device, sum_writer, gen_log_file, gen_freq=VAL_GEN_FREQ)
+        validation(
+            model,
+            val_loader,
+            0,
+            device,
+            sum_writer,
+            gen_log_file,
+            gen_freq=VAL_GEN_FREQ,
+        )
 
         print("Start training")
         start_time = time.time()
@@ -246,13 +248,18 @@ def main(args, config):
                 optimizer,
                 epoch,
                 device,
-                config,
                 sum_writer,
                 gen_log_file,
                 gen_freq=TRAIN_GEN_FREQ,
             )
             validation(
-                model, val_loader, epoch, device, sum_writer, gen_log_file, gen_freq=VAL_GEN_FREQ
+                model,
+                val_loader,
+                epoch,
+                device,
+                sum_writer,
+                gen_log_file,
+                gen_freq=VAL_GEN_FREQ,
             )
 
             if utils.is_main_process():
@@ -272,8 +279,6 @@ def main(args, config):
 
                 with open(os.path.join(OUTPUT_DIR, "log.txt"), "a") as f:
                     f.write(json.dumps(log_stats) + "\n")
-
-            # dist.barrier()
 
         total_time = time.time() - start_time
         total_time_str = str(timedelta(seconds=int(total_time)))
