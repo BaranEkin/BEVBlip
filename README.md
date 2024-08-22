@@ -3,7 +3,7 @@ BEVBlip is an efficient and ligtweight Vision-Language Model (VLM) based on BLIP
 As the core idea, BEVBlip employs spatio-temporal Bird’s Eye View (BEV) maps acquired via BEVFormer as visual features and integrates visual and language features for enhanced traffic environment understanding.
 In order to align BEV features with language, a pre-training stage utilizing GPT generated data is executed.
 
-For an in depth explanation, please see: 
+### For an in depth explanation, please see: [Thesis - Knowledge Distilled Traffic Environment Understanding](https://github.com/BaranEkin/BEVBlip/blob/main/docs/thesis.pdf)
 
 ## Example Results
 ![image](https://github.com/user-attachments/assets/68bd5beb-916e-4383-8237-556f56c3d028)
