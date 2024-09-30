@@ -1,5 +1,5 @@
 # Visual Question Answering for Traffic Environment Understanding
-BEVBlip is an efficient and ligtweight Vision-Language Model (VLM) based on BLIP architecture, trained for comprehensive Visual Question Answering (VQA) task introduced by DriveLM on nuScenes dataset.
+BEVBlip is an efficient and lightweight Vision-Language Model (VLM) based on BLIP architecture, trained for comprehensive Visual Question Answering (VQA) task introduced by DriveLM on nuScenes dataset.
 As the core idea, BEVBlip employs spatio-temporal Bird’s Eye View (BEV) maps acquired via BEVFormer as visual features and integrates visual and language features for enhanced traffic environment understanding.
 In order to align BEV features with language, a pre-training stage utilizing GPT generated data is executed.
 
